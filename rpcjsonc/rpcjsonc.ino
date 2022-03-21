@@ -22,16 +22,18 @@
 #define STAPSK  "xxxxxxxxxx"
 #endif
 
-// commment to old json parsing (used with remote robonomics), uncomment to new one (with localhost robonomics)
-//#define RESPONSE_STRING_ARRAY
+// commment to old json parsing (used with remote robonomics), uncomment to new one (with localhost)
+#define RESPONSE_STRING_ARRAY
 #ifdef RESPONSE_STRING_ARRAY
 //#define URLRPC "http://192.168.2.26:9933"
 //#define URLRPC "http://192.168.2.25:9933"
 //#define URLRPC "http://192.168.0.102:9933"
 //#define URLRPC "http://192.168.0.103:9933"
 //#define URLRPC "http://192.168.1.35:9933"
-#define URLRPC "http://192.168.0.102:9933"
-#define TRANSACTION "http://192.168.0.102:9933"
+//#define URLRPC "http://192.168.0.102:9933"
+//#define TRANSACTION "http://192.168.0.102:9933"
+#define URLRPC "http://kusama.rpc.robonomics.network:80/rpc/"
+#define TRANSACTION "http://kusama.rpc.robonomics.network:80/rpc/"
 #else
 #define URLRPC "http://kusama.rpc.robonomics.network:80/rpc/"
 #define TRANSACTION "http://kusama.rpc.robonomics.network:80/rpc/"
@@ -216,11 +218,12 @@ void loop() {
                 param0.append(ch);
         }
         params [0] = param0.c_str();
+        //params [0] = "0x3902840016eb796bee0c857db3d646ee7070252707aec0c7d82b2eda856632f6a2306a5801566e85037eee8e228414f49c797ef01e086364783b21a3b9910dcfcf600e1c0fca9207805301fad5da07c50d21e1358c734bcdcc2bdd9b29f969d188c817918b5401f4001f030016eb796bee0c857db3d646ee7070252707aec0c7d82b2eda856632f6a2306a58025a6202";
         // sample - {"jsonrpc":"2.0","error":{"code":1010,"message":"Invalid Transaction","data":"Transaction has a bad signature"},"id":1}
         // local  - {"jsonrpc":"2.0","error":{"code":1002,"message":"Verification Error: Runtime error: Execution failed: Execution aborted due to trap: wasm trap: wasm `unreachable` instruction executed\nWASM backtrace:\n\n    0: 0x1c254a - <unknown>!rust_begin_unwind\n    1: 0x2934 - <unknown>!core::panicking::panic_fmt::h6314b5c91abe7349\n    2: 0x4b559 - <unknown>!TaggedTransactionQueue_validate_transaction\n","data":"Runtime error: Execution failed: Execution aborted due to trap: wasm trap: wasm `unreachable` instruction executed\nWASM backtrace:\n\n    0: 0x1c254a - <unknown>!rust_begin_unwind\n    1: 0x2934 - <unknown>!core::panicking::panic_fmt::h6314b5c91abe7349\n    2: 0x4b559 - <unknown>!TaggedTransactionQueue_validate_transaction\n"},"id":1}
         // remote - {"jsonrpc":"2.0","error":{"code":1002,"message":"Verification Error: Runtime error: Execution failed: Error calling api function: Failed to convert parameter `tx` from node to runtime of validate_transaction","data":"Runtime error: Execution failed: Error calling api function: Failed to convert parameter `tx` from node to runtime of validate_transaction"},"id":1}
         // then   - {"jsonrpc":"2.0","error":{"code":1012,"message":"Transaction is temporarily banned"},"id":1}
-              
+               
         JSONVar extrinsic;        
         extrinsic["jsonrpc"] = "2.0";
         extrinsic["id"] = (double) id_conter;
