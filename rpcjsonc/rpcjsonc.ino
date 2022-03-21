@@ -404,12 +404,10 @@ void loop() {
 
               //append(edata, encodeAccountId(publicKey.bytes, encodeRawAccount(network, specVersion)));  // signer public key
 #ifdef RESPONSE_STRING_ARRAY
-              bool etype =  true;  
+              bool etype =  encodeRawAccount(network, 1); // specVersion = 1
 #else 
               bool etype =  encodeRawAccount(network, specVersion);
-              etype =  true;
 #endif    
-              etype =  false;
               std::vector<std::uint8_t> pubKey( reinterpret_cast<std::uint8_t*>(std::begin(publicKey)), reinterpret_cast<std::uint8_t*>(std::end(publicKey)));
               append(edata, encodeAccountId(pubKey,etype));  // signer public key
               append(edata, sigTypeEd25519); // signature type
