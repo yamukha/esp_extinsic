@@ -171,7 +171,8 @@ std::vector<uint8_t> hex2bytes (std::string hex) {
 
 std::vector<uint8_t> callDatalogRecord (Data head, std::string str) {
     Data call;
-    append(call, head); 
+    append(call, head);
+    append(call, encodeCompact(str.length()));
     std::vector<uint8_t> rec(str.begin(), str.end());
     append(call, rec); 
     return call;
@@ -385,15 +386,15 @@ void loop() {
               //  ==== encodePayload() ===            
 #ifdef RPC_TO_LOCAL
 #ifdef RPC_BALANCE_TX
-              Data call =  callTransferBalance ( Data{7, 0,0}, SS58KEY, ++fee); // call header for Balance transfer
+              Data call = callTransferBalance(Data{7,0,0}, SS58KEY, ++fee); // call header for Balance transfer
 #else
-              Data call = callDatalogRecord(Data{0x10, 0,12}, "ooo" ); // call header for Datalog record + some payload
+              Data call = callDatalogRecord(Data{0x10,0}, "ooo"); // call header for Datalog record + some payload
 #endif
 #else
 #ifdef RPC_BALANCE_TX
-              Data call =  callTransferBalance (Data{0x1f, 0,0}, SS58KEY, ++fee); // call header for Balance transfer
+              Data call = callTransferBalance(Data{0x1f, 0, 0}, SS58KEY, ++fee); // call header for Balance transfer
 #else
-              Data call = callDatalogRecord(Data{0x33, 0,12}, "ooo" ); // call header for Datalog record + some payload
+              Data call = callDatalogRecord(Data{0x33,0}, "ooo"); // call header for Datalog record + some payload
 #endif
 #endif
               append(data, call);               
