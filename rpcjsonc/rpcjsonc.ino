@@ -79,7 +79,7 @@ static constexpr TWSS58AddressType network = TWSS58AddressTypeKusama;
 bool isGetParameters = true;
 Data edata;
 uint64_t id_conter = 0; 
-uint64_t fee = 0; 
+uint64_t fee = 300; 
 uint8_t sig[64];
 uint8_t privateKey[32];
 uint8_t publicKey[32];
@@ -167,6 +167,23 @@ std::vector<uint8_t> hex2bytes (std::string hex) {
       bytes.push_back(byte);
     }
     return bytes;
+}
+
+std::vector<uint8_t> callDatalogRecord (Data head, std::string str) {
+    Data call;
+    append(call, head); 
+    std::vector<uint8_t> rec(str.begin(), str.end());
+    append(call, rec); 
+    return call;
+}
+
+std::vector<uint8_t> callTransferBalance (Data head, std::string str, uint64_t fee ) {
+    Data call;
+    append(call, head); 
+    std::vector<uint8_t> dst = hex2bytes (str.c_str()); // derived SS58KEY from SS58DST 
+    append(call, dst); 
+    append(call, encodeCompact(fee)); // value
+    return call;
 }
 
 std::string swapEndian(String str) {
@@ -366,32 +383,18 @@ void loop() {
               Serial.printf("tx_version: %ld\n",tx_version);
                             
               //  ==== encodePayload() ===            
-              //  == build  call ==             
-              // Data call = Data{0x04, 0x00}; // Balance.Transfer //  append(data, getCallIndex(network, balanceTransfer));
-
 #ifdef RPC_TO_LOCAL
 #ifdef RPC_BALANCE_TX
-              Data call = Data{7, 0,0};    // call header for Balance transfer
+              Data call =  callTransferBalance ( Data{7, 0,0}, SS58KEY, ++fee); // call header for Balance transfer
 #else
-              Data call = Data{0x10, 0,8};  // call header for Datalog record
+              Data call = callDatalogRecord(Data{0x10, 0,12}, "ooo" ); // call header for Datalog record + some payload
 #endif
 #else
 #ifdef RPC_BALANCE_TX
-              Data call = Data{0x1f, 0,0}; // call header for Balance transfer
+              Data call =  callTransferBalance (Data{0x1f, 0,0}, SS58KEY, ++fee); // call header for Balance transfer
 #else
-              Data call = Data{0x33, 0,8}; // call header for Datalog record
+              Data call = callDatalogRecord(Data{0x33, 0,12}, "ooo" ); // call header for Datalog record + some payload
 #endif
-#endif
-
-#ifdef RPC_BALANCE_TX
-              // append(call, encodeAccountId(address.keyBytes(), encodeRawAccount(network, specVersion)));
-              std::vector<uint8_t> dst = hex2bytes (SS58KEY); // derived SS58KEY from SS58DST 
-              append(call, dst); 
-              append(call, encodeCompact(++fee)); // value
-#else
-              std::string record = "om";
-              std::vector<uint8_t> rec(record.begin(), record.end());
-              append(call, rec); 
 #endif
               append(data, call);               
               
