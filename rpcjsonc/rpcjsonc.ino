@@ -25,6 +25,9 @@
 // commment to old json parsing (used with remote robonomics), uncomment to new one (with localhost)
 #define RESPONSE_STRING_ARRAY
 
+// Balance transfer extrinsic call in other case Datalog record call
+//#define RPC_BALANCE_TX
+
 //#define RPC_TO_LOCAL
 #ifdef RPC_TO_LOCAL
 #define GENESIS_HASH     "c0ef85b9b694feb3f7e234b692982c9ae3a166af7b64360da8b7b6cb916e83b6"
@@ -365,15 +368,31 @@ void loop() {
               //  ==== encodePayload() ===            
               //  == build  call ==             
               // Data call = Data{0x04, 0x00}; // Balance.Transfer //  append(data, getCallIndex(network, balanceTransfer));
+
 #ifdef RPC_TO_LOCAL
-              Data call = Data{7, 0,0};
+#ifdef RPC_BALANCE_TX
+              Data call = Data{7, 0,0};    // call header for Balance transfer
 #else
-              Data call = Data{0x1f, 0,0};
+              Data call = Data{0x10, 0,8};  // call header for Datalog record
 #endif
-              // append(call, encodeAccountId(address.keyBytes(), encodeRawAccount(network, specVersion))); 
-              std::vector<uint8_t> dst = hex2bytes (SS58KEY); // from SS58DST derived SS58KEY
+#else
+#ifdef RPC_BALANCE_TX
+              Data call = Data{0x1f, 0,0}; // call header for Balance transfer
+#else
+              Data call = Data{0x33, 0,8}; // call header for Datalog record
+#endif
+#endif
+
+#ifdef RPC_BALANCE_TX
+              // append(call, encodeAccountId(address.keyBytes(), encodeRawAccount(network, specVersion)));
+              std::vector<uint8_t> dst = hex2bytes (SS58KEY); // derived SS58KEY from SS58DST 
               append(call, dst); 
               append(call, encodeCompact(++fee)); // value
+#else
+              std::string record = "om";
+              std::vector<uint8_t> rec(record.begin(), record.end());
+              append(call, rec); 
+#endif
               append(data, call);               
               
 #ifdef RESPONSE_STRING_ARRAY
