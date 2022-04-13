@@ -187,6 +187,23 @@ std::vector<uint8_t> callTransferBalance (Data head, std::string str, uint64_t f
     return call;
 }
 
+std::vector<uint8_t> doPayload (Data call, uint32_t era, uint64_t nonce, uint64_t tip, uint32_t sv, uint32_t tv, std::string gen, std::string block) {
+    Data data;
+    append(data, call);
+    append(data, encodeCompact(era)); // era; note: it simplified to encode, maybe need to rewrite
+    append(data, encodeCompact(nonce));
+    append(data, encodeCompact(tip));
+              
+    encode32LE(sv, data);     // specversion
+    encode32LE(tv, data);     // version
+            
+    std::vector<uint8_t> gh = hex2bytes(gen.c_str());
+    append(data, gh);
+    std::vector<uint8_t> bh = hex2bytes(block.c_str()); // block hash
+    append(data, bh);     
+    return data;
+}
+
 std::string swapEndian(String str) {
     std::string hex = str.c_str();
     std::string bytes;
@@ -397,11 +414,12 @@ void loop() {
               Data call = callDatalogRecord(Data{0x33,0}, "ooo"); // call header for Datalog record + some payload
 #endif
 #endif
-              append(data, call);               
+              //append(data, call);               
               
 #ifdef RESPONSE_STRING_ARRAY
               // == encodeEraNonceTip() == 
-              append(data, encodeCompact(eraI)); // era; note: it simplified to encode, maybe need to rewrite
+              data = doPayload (call, eraI, nonce, tip, specVersion, tx_version, GENESIS_HASH, GENESIS_HASH);
+              /*append(data, encodeCompact(eraI)); // era; note: it simplified to encode, maybe need to rewrite
               append(data,encodeCompact(nonce)); // nonce
               append(data, encodeCompact(tip)); //tip
               
@@ -410,7 +428,8 @@ void loop() {
 
               std::vector<uint8_t> gh = hex2bytes(GENESIS_HASH);
               append(data, gh);
-              append(data, gh);              
+              append(data, gh);
+              */
 #else
               append(data, encodeCompact(eraI)); // era; note: it simplified to encode, maybe need to rewrite
               append(data, encodeCompact(nonce));
