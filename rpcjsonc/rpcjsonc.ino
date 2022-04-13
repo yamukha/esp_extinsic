@@ -204,6 +204,11 @@ std::vector<uint8_t> doPayload (Data call, uint32_t era, uint64_t nonce, uint64_
     return data;
 }
 
+std::vector<uint8_t> doSign(Data payload, uint8_t sig[64], uint8_t privateKey[32], uint8_t publicKey[32]) {
+    Data data;
+    return data;
+}
+
 std::string swapEndian(String str) {
     std::string hex = str.c_str();
     std::string bytes;
@@ -405,43 +410,17 @@ void loop() {
 #ifdef RPC_BALANCE_TX
               Data call = callTransferBalance(Data{7,0,0}, SS58KEY, ++fee); // call header for Balance transfer
 #else
-              Data call = callDatalogRecord(Data{0x10,0}, "ooo"); // call header for Datalog record + some payload
+              Data call = callDatalogRecord(Data{0x10,0}, "oou"); // call header for Datalog record + some payload
 #endif
 #else
 #ifdef RPC_BALANCE_TX
               Data call = callTransferBalance(Data{0x1f, 0, 0}, SS58KEY, ++fee); // call header for Balance transfer
 #else
-              Data call = callDatalogRecord(Data{0x33,0}, "ooo"); // call header for Datalog record + some payload
+              Data call = callDatalogRecord(Data{0x33,0}, "oou"); // call header for Datalog record + some payload
 #endif
-#endif
-              //append(data, call);               
-              
-#ifdef RESPONSE_STRING_ARRAY
-              // == encodeEraNonceTip() == 
+#endif                      
               data = doPayload (call, eraI, nonce, tip, specVersion, tx_version, GENESIS_HASH, GENESIS_HASH);
-              /*append(data, encodeCompact(eraI)); // era; note: it simplified to encode, maybe need to rewrite
-              append(data,encodeCompact(nonce)); // nonce
-              append(data, encodeCompact(tip)); //tip
-              
-              encode32LE(specVersion, data);    // specversion
-              encode32LE(tx_version, data);     // version 
-
-              std::vector<uint8_t> gh = hex2bytes(GENESIS_HASH);
-              append(data, gh);
-              append(data, gh);
-              */
-#else
-              append(data, encodeCompact(eraI)); // era; note: it simplified to encode, maybe need to rewrite
-              append(data, encodeCompact(nonce));
-              append(data, encodeCompact(tip));
-              
-              encode32LE(specVersion, data);  // specversion
-              encode32LE(tx_version, data);      // version
-            
-              std::vector<uint8_t> gh = hex2bytes(GENESIS_HASH);
-              append(data, gh);
-              append(data, gh);     
-#endif
+     
               // sign payload
               uint8_t payload[data.size()];             
       
@@ -455,6 +434,7 @@ void loop() {
               for (int i = 0; i < 64; i++) {
                 Serial.printf("%02x",sig[i]);
               }
+              std::vector<byte> signature (sig,sig + 64);   // signed data as bytes vector
               
               // == encodeSignature(publicKey, signature) ; == 
               append(edata, Data{extrinsicFormat | signedBit});  // version header
@@ -477,7 +457,7 @@ void loop() {
               append(edata,pubKey);  // signer public key
               
               append(edata, sigTypeEd25519); // signature type
-              std::vector<byte> signature (sig,sig + 64);    // signanture is signed data
+            
               append(edata, signature);      // signatured payload
               
               // era / nonce / tip // append(edata, encodeEraNonceTip());
