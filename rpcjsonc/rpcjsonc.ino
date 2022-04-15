@@ -204,9 +204,16 @@ std::vector<uint8_t> doPayload (Data call, uint32_t era, uint64_t nonce, uint64_
     return data;
 }
 
-std::vector<uint8_t> doSign(Data payload, uint8_t sig[64], uint8_t privateKey[32], uint8_t publicKey[32]) {
-    Data data;
-    return data;
+std::vector<uint8_t> doSign(Data data, uint8_t privateKey[32], uint8_t publicKey[32]) {
+  
+    uint8_t payload[data.size()];             
+    uint8_t sig[64];
+     
+    std::copy(data.begin(), data.end(), payload);
+    Ed25519::sign(sig, privateKey, publicKey, payload, data.size());
+           
+    std::vector<byte> signature (sig,sig + 64);   // signed data as bytes vector
+    return signature;
 }
 
 std::string swapEndian(String str) {
@@ -420,22 +427,8 @@ void loop() {
 #endif
 #endif                      
               data = doPayload (call, eraI, nonce, tip, specVersion, tx_version, GENESIS_HASH, GENESIS_HASH);
-     
-              // sign payload
-              uint8_t payload[data.size()];             
-      
-              std::copy(data.begin(), data.end(), payload);
-              Ed25519::sign(sig, privateKey, publicKey, payload, data.size());
-              Serial.printf("\Payload raw: len %d , data:\n", data.size());
-              for (int i = 0; i < data.size(); i++) {
-                Serial.printf("%02x",payload[i]);
-              }
-              Serial.printf("\nSigned payload: len %d , data:\n", 64);
-              for (int i = 0; i < 64; i++) {
-                Serial.printf("%02x",sig[i]);
-              }
-              std::vector<byte> signature (sig,sig + 64);   // signed data as bytes vector
-              
+              Data signature = doSign (data, privateKey, publicKey);
+
               // == encodeSignature(publicKey, signature) ; == 
               append(edata, Data{extrinsicFormat | signedBit});  // version header
               append(edata,0);
