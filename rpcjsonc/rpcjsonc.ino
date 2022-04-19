@@ -306,6 +306,20 @@ FromJson parseJson (JSONVar val) {
    return fj;
 }
 
+String getPayloadJs (std::string account) {
+   String jsonString;
+   JSONVar params;
+   params [0] = account.c_str();
+
+   JSONVar get_payload;    
+   get_payload["jsonrpc"] = "2.0";
+   get_payload["id"] = (double) id_conter; // todo increment
+   get_payload["method"] = "get_payload";
+   get_payload["params"] = params;
+   jsonString = JSON.stringify(get_payload); 
+   return jsonString;
+}
+
 void setup() {
 
   Serial.begin(115200);
@@ -342,14 +356,7 @@ void loop() {
     JSONVar params; 
     String jsonString;
     if (isGetParameters) {
-        param0 = "4GiRoiHkwqYdFpNJWrJrzPcRqaNWJayG1Lq5ZgLqoZwrZHjj";
-        params [0] = param0.c_str();
-        JSONVar get_payload;    
-        get_payload["jsonrpc"] = "2.0";
-        get_payload["id"] = (double) id_conter; // todo increment
-        get_payload["method"] = "get_payload";
-        get_payload["params"] = params;
-        jsonString = JSON.stringify(get_payload);
+        jsonString = getPayloadJs ("4GiRoiHkwqYdFpNJWrJrzPcRqaNWJayG1Lq5ZgLqoZwrZHjj");
     } else {
       // fill params as hex     
         param0.append("0x");
