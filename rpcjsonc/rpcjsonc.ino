@@ -57,6 +57,17 @@ typedef struct uint128_s
   uint64_t msb;
 }uint128_t;
 
+typedef struct {
+   std::string ghash;      // genesis hash
+   std::string bhash;      // block_hash
+   uint32_t version = 0;   // transaction version 
+   uint64_t nonce;
+   uint64_t tip;           // uint256_t tip;    // balances::TakeFees   
+   uint32_t specVersion;   // Runtime spec version 
+   uint32_t tx_version;
+   uint32_t era;
+} FromJson;
+
 enum TWSS58AddressType {
     TWSS58AddressTypePolkadot = 0,
     TWSS58AddressTypeKusama = 2,
@@ -238,7 +249,7 @@ std::vector<uint8_t> doEncode (Data signature, Data pubKey, uint32_t era, uint64
     return edata;
 }
 
-std::string swapEndian(String str) {
+std::string swapEndian(std::string str) {
     std::string hex = str.c_str();
     std::string bytes;
     for (unsigned int i = 0; i < hex.length(); i += 2) {
@@ -249,6 +260,12 @@ std::string swapEndian(String str) {
       }
     }
     return bytes;
+}
+
+FromJson parseJson (JSONVar jval) {
+   Serial.println(jval);
+   FromJson fj;
+   return fj;
 }
 
 void setup() {
@@ -354,13 +371,14 @@ void loop() {
          JSONVar keys = myObject.keys();
          bool res = false;
          JSONVar val;
-         String genesis_hash;
-         String block_hash;
+         FromJson fj;
+         std::string genesis_hash;
+         std::string block_hash;
          uint32_t version = 0;  // transaction version 
          uint64_t nonce;
          uint64_t tip;          // uint256_t tip;    // balances::TakeFees   
          uint32_t specVersion;  // Runtime spec version 
-         String era;
+         std::string era;
          uint32_t tx_version;
          uint32_t eraI;
                   
@@ -389,11 +407,11 @@ void loop() {
   
 #ifdef RESPONSE_STRING_ARRAY                  
               genesis_hash =  GENESIS_HASH;
-              String nonce_ =  (const char*) (val[0]);
-              String specVersion_ = (const char*)(val[1]);
-              String tip_ =  (const char*)(val[2]);
+              std::string nonce_ =  (const char*) (val[0]);
+              std::string specVersion_ = (const char*)(val[1]);
+              std::string tip_ =  (const char*)(val[2]);
               era =  (const char*)(val[3]); 
-              String tx_version_ = (const char*) (val[4]);
+              std::string tx_version_ = (const char*) (val[4]);
 
               std::string nonceS  = swapEndian (nonce_);
               nonce =  strtol(nonceS.c_str(), NULL, 16);
@@ -426,32 +444,42 @@ void loop() {
                 eraI = strtol(eraS.c_str(), NULL, 16); 
               } 
 #endif 
-              Serial.println(val);
-              Serial.println(genesis_hash);
-              Serial.printf("nonce: %ld\n",nonce);
-              Serial.printf("specVersion: %ld\n",specVersion);
-              Serial.printf("tip: %ld\n",tip); 
-              Serial.printf("era: %ld\n",eraI);
-              Serial.printf("tx_version: %ld\n",tx_version);
+              
+              fj = parseJson (val);
+              
+              fj.nonce = nonce;
+              fj.tip = tip;
+              fj.era = eraI;
+              fj.specVersion = specVersion;
+              fj.tx_version = tx_version;
+              fj.ghash = GENESIS_HASH;
+              fj.bhash = GENESIS_HASH;
+              
+              Serial.println(fj.ghash.c_str());
+              Serial.printf("nonce: %ld\n",fj.nonce);
+              Serial.printf("specVersion: %ld\n",fj.specVersion);
+              Serial.printf("tip: %ld\n",fj.tip); 
+              Serial.printf("era: %ld\n",fj.era);
+              Serial.printf("tx_version: %ld\n",fj.tx_version);
                             
               //  ==== encodePayload() ===            
 #ifdef RPC_TO_LOCAL
 #ifdef RPC_BALANCE_TX
               Data call = callTransferBalance(Data{7,0,0}, SS58KEY, ++fee); // call header for Balance transfer
 #else
-              Data call = callDatalogRecord(Data{0x10,0}, "oou"); // call header for Datalog record + some payload
+              Data call = callDatalogRecord(Data{0x10,0}, "ooo"); // call header for Datalog record + some payload
 #endif
 #else
 #ifdef RPC_BALANCE_TX
               Data call = callTransferBalance(Data{0x1f, 0, 0}, SS58KEY, ++fee); // call header for Balance transfer
 #else
-              Data call = callDatalogRecord(Data{0x33,0}, "oou"); // call header for Datalog record + some payload
+              Data call = callDatalogRecord(Data{0x33,0}, "ooo"); // call header for Datalog record + some payload
 #endif
 #endif                      
-              data = doPayload (call, eraI, nonce, tip, specVersion, tx_version, GENESIS_HASH, GENESIS_HASH);
+              data = doPayload (call, fj.era, fj.nonce, fj.tip, fj.specVersion, fj.tx_version, fj.ghash, fj.bhash);
               Data signature = doSign (data, privateKey, publicKey);
               std::vector<std::uint8_t> pubKey( reinterpret_cast<std::uint8_t*>(std::begin(publicKey)), reinterpret_cast<std::uint8_t*>(std::end(publicKey)));               
-              edata = doEncode (signature, pubKey, eraI, nonce, tip, call);
+              edata = doEncode (signature, pubKey, fj.era, fj.nonce, fj.tip, call);
                             
               Serial.println("extrinstic data:");
               for(std::vector<byte>::size_type i = 0; i != edata.size(); i++) {
