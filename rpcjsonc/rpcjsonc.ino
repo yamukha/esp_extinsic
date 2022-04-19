@@ -35,11 +35,6 @@
 #define CALL_BALANCE_TX  "0700008eaf04151687736326c9fea17e25fc5287613693c912909cb226aa4794f26a4804"
 #define URLRPC "http://192.168.0.102:9933"
 #define TRANSACTION "http://192.168.0.102:9933"
-//#define URLRPC "http://192.168.2.26:9933"
-//#define URLRPC "http://192.168.2.25:9933"
-//#define URLRPC "http://192.168.0.102:9933"
-//#define URLRPC "http://192.168.0.103:9933"
-//#define URLRPC "http://192.168.1.35:9933"
 #else
 #define GENESIS_HASH     "631ccc82a078481584041656af292834e1ae6daab61d2875b4dd0c14bb9b17bc"
 #define CALL_BALANCE_TX  "1f00008eaf04151687736326c9fea17e25fc5287613693c912909cb226aa4794f26a4804"
@@ -86,7 +81,6 @@ static constexpr uint32_t multiAddrSpecVersionKsm = 2028;
 static constexpr TWSS58AddressType network = TWSS58AddressTypeKusama;
             
 #define GET_PAYLOAD "{ \"jsonrpc\":\"2.0\", \"id\":1, \"method\":\"get_payload\", \"params\": [\"4GiRoiHkwqYdFpNJWrJrzPcRqaNWJayG1Lq5ZgLqoZwrZHjj\"]}"
-#define SYS_VERSION "{ \"jsonrpc\":\"2.0\", \"id\":1, \"method\":\"system_version\", \"params\": [] }"
 
 bool isGetParameters = true;
 Data edata;
@@ -320,6 +314,29 @@ String getPayloadJs (std::string account, uint64_t id_cnt) {
    return jsonString;
 }
 
+String fillParamsJs (std::vector<uint8_t> data, uint64_t id_cnt) {
+    String jsonString;
+    JSONVar params;
+    std::string param0;
+    
+    param0.append("0x");
+    char ch [2];   
+    for (int i = 0; i < edata.size();i++) {
+        sprintf(ch,"%02x",data[i]);
+        param0.append(ch);
+    }
+    params [0] = param0.c_str();
+          
+    JSONVar extrinsic;        
+    extrinsic["jsonrpc"] = "2.0";
+    extrinsic["id"] = (double) id_counter;
+    extrinsic["method"] = "author_submitExtrinsic";
+    extrinsic["params"] = params;
+    jsonString = JSON.stringify(extrinsic);
+ 
+    return jsonString;
+}
+ 
 void setup() {
 
   Serial.begin(115200);
@@ -350,29 +367,14 @@ void loop() {
 
     WiFiClient client;
     HTTPClient http;
-    std::string param0;
     Data data;
                        
     JSONVar params; 
     String jsonString;
     if (isGetParameters) {
         jsonString = getPayloadJs ("4GiRoiHkwqYdFpNJWrJrzPcRqaNWJayG1Lq5ZgLqoZwrZHjj",id_counter);
-    } else {
-      // fill params as hex     
-        param0.append("0x");
-        char ch [2];   
-        for (int i = 0; i < edata.size();i++) {
-                sprintf(ch,"%02x",edata[i]);
-                param0.append(ch);
-        }
-        params [0] = param0.c_str();
-          
-        JSONVar extrinsic;        
-        extrinsic["jsonrpc"] = "2.0";
-        extrinsic["id"] = (double) id_counter;
-        extrinsic["method"] = "author_submitExtrinsic";
-        extrinsic["params"] = params;
-        jsonString = JSON.stringify(extrinsic);
+    } else {     
+        jsonString = fillParamsJs (edata,id_counter);
         edata.clear();
     }
     id_counter++;
@@ -418,15 +420,6 @@ void loop() {
          bool res = false;
          JSONVar val;
          FromJson fj;
-         std::string genesis_hash;
-         std::string block_hash;
-         uint32_t version = 0;  // transaction version 
-         uint64_t nonce;
-         uint64_t tip;          // uint256_t tip;    // balances::TakeFees   
-         uint32_t specVersion;  // Runtime spec version 
-         std::string era;
-         uint32_t tx_version;
-         uint32_t eraI;
                   
          //"result" or "error"
          for (int i = 0; i < keys.length(); i++) {
@@ -448,8 +441,7 @@ void loop() {
            if (isGetParameters) {
               
               fj = parseJson (val);
-                            
-              //  ==== encodePayload() ===            
+         
 #ifdef RPC_TO_LOCAL
 #ifdef RPC_BALANCE_TX
               Data call = callTransferBalance(Data{7,0,0}, SS58KEY, ++fee); // call header for Balance transfer
