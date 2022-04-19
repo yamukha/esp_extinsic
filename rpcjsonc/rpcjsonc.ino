@@ -262,9 +262,47 @@ std::string swapEndian(std::string str) {
     return bytes;
 }
 
-FromJson parseJson (JSONVar jval) {
-   Serial.println(jval);
+//  -- genesis_hash, nonce, spec_version, tip, era, tx_version
+//  ["0x631ccc82a078481584041656af292834e1ae6daab61d2875b4dd0c14bb9b17bc",0,16,0,"Immortal",1]
+//  -- nonce, spec_version, tip, era, tx_version
+// ["0x00","0x01000000","0x00","0x0000000000000000","0x0100000000000000"]
+FromJson parseJson (JSONVar val) {
+   Serial.println(val);
    FromJson fj;
+   
+   std::string nonce_ =  (const char*) (val[0]);
+   std::string specVersion_ = (const char*)(val[1]);
+   std::string tip_ =  (const char*)(val[2]);
+   std::string era_ =  (const char*)(val[3]); 
+   std::string tx_version_ = (const char*) (val[4]);
+
+   std::string nonceS  = swapEndian (nonce_);
+   fj.nonce =  strtol(nonceS.c_str(), NULL, 16);
+
+   std::string tipS = swapEndian (tip_);
+   fj.tip =  strtol(tipS.c_str(), NULL, 16);
+
+   std::string specVer = swapEndian (specVersion_);
+   fj.specVersion =  strtol(specVer.c_str(), NULL, 16);
+
+   std::string txVer = swapEndian (tx_version_);
+   fj.tx_version = strtol(txVer.c_str(), NULL, 16); 
+  
+   std::string eraS = swapEndian (era_);
+   fj.era = strtol(eraS.c_str(), NULL, 16);
+
+   fj.ghash = GENESIS_HASH;
+   fj.bhash = GENESIS_HASH;
+
+#ifdef DEBUG_JSON                   
+   Serial.println(fj.ghash.c_str());
+   Serial.printf("nonce: %ld\n",fj.nonce);
+   Serial.printf("specVersion: %ld\n",fj.specVersion);
+   Serial.printf("tip: %ld\n",fj.tip); 
+   Serial.printf("era: %ld\n",fj.era);
+   Serial.printf("tx_version: %ld\n",fj.tx_version);
+#endif
+
    return fj;
 }
 
@@ -358,6 +396,7 @@ void loop() {
     if (httpCode > 0) {
       
       Serial.printf("[HTTP] POST code: %d\n", httpCode);
+      // 1st stage: get paramteres to form extrinsic
       if (httpCode == HTTP_CODE_OK) {
         const String& payload = http.getString();
         Serial.println("received:");
@@ -397,83 +436,24 @@ void loop() {
                isGetParameters = true;
              }       
          }
-                 
+         // 2nd stage: create and send extrinsic        
          if (res) {
            if (isGetParameters) {
-              //  get: genesis_hash, nonce, spec_version, tip, era, tx_version
-              //  ["0x631ccc82a078481584041656af292834e1ae6daab61d2875b4dd0c14bb9b17bc",0,16,0,"Immortal",1]
-              //  get: nonce, spec_version, tip, era, tx_version
-              // ["0x00","0x01000000","0x00","0x0000000000000000","0x0100000000000000"]
-  
-#ifdef RESPONSE_STRING_ARRAY                  
-              genesis_hash =  GENESIS_HASH;
-              std::string nonce_ =  (const char*) (val[0]);
-              std::string specVersion_ = (const char*)(val[1]);
-              std::string tip_ =  (const char*)(val[2]);
-              era =  (const char*)(val[3]); 
-              std::string tx_version_ = (const char*) (val[4]);
-
-              std::string nonceS  = swapEndian (nonce_);
-              nonce =  strtol(nonceS.c_str(), NULL, 16);
-
-              std::string tipS = swapEndian (tip_);
-              tip =  strtol(tipS.c_str(), NULL, 16);
-
-              std::string specVer = swapEndian (specVersion_);
-              specVersion =  strtol(specVer.c_str(), NULL, 16);
-
-              std::string txVer = swapEndian (tx_version_);
-              tx_version = strtol(txVer.c_str(), NULL, 16); 
-  
-              std::string eraS = swapEndian (era);
-              eraI = strtol(eraS.c_str(), NULL, 16); 
-                                      
-#else
-              genesis_hash = (const char*)(val[0]); // or block_hash ? 
-              nonce =  long (val[1]);
-              specVersion = int(val[2]);
-              tip =  long (val[3]);
-              era =  (const char*)(val[4]); 
-              tx_version = int (val[5]);
-              
-              if (strstr(era.c_str(),"Immortal")) {
-                eraI = 0;
-              }
-              else {
-                std::string eraS = swapEndian (era);
-                eraI = strtol(eraS.c_str(), NULL, 16); 
-              } 
-#endif 
               
               fj = parseJson (val);
-              
-              fj.nonce = nonce;
-              fj.tip = tip;
-              fj.era = eraI;
-              fj.specVersion = specVersion;
-              fj.tx_version = tx_version;
-              fj.ghash = GENESIS_HASH;
-              fj.bhash = GENESIS_HASH;
-              
-              Serial.println(fj.ghash.c_str());
-              Serial.printf("nonce: %ld\n",fj.nonce);
-              Serial.printf("specVersion: %ld\n",fj.specVersion);
-              Serial.printf("tip: %ld\n",fj.tip); 
-              Serial.printf("era: %ld\n",fj.era);
-              Serial.printf("tx_version: %ld\n",fj.tx_version);
                             
               //  ==== encodePayload() ===            
 #ifdef RPC_TO_LOCAL
 #ifdef RPC_BALANCE_TX
               Data call = callTransferBalance(Data{7,0,0}, SS58KEY, ++fee); // call header for Balance transfer
 #else
-              Data call = callDatalogRecord(Data{0x10,0}, "ooo"); // call header for Datalog record + some payload
+              Data call = callDatalogRecord(Data{0x10,0}, "ook"); // call header for Datalog record + some payload
 #endif
 #else
 #ifdef RPC_BALANCE_TX
               Data call = callTransferBalance(Data{0x1f, 0, 0}, SS58KEY, ++fee); // call header for Balance transfer
 #else
-              Data call = callDatalogRecord(Data{0x33,0}, "ooo"); // call header for Datalog record + some payload
+              Data call = callDatalogRecord(Data{0x33,0}, "ook"); // call header for Datalog record + some payload
 #endif
 #endif                      
               data = doPayload (call, fj.era, fj.nonce, fj.tip, fj.specVersion, fj.tx_version, fj.ghash, fj.bhash);
