@@ -90,7 +90,7 @@ static constexpr TWSS58AddressType network = TWSS58AddressTypeKusama;
 
 bool isGetParameters = true;
 Data edata;
-uint64_t id_conter = 0; 
+uint64_t id_counter = 0; 
 uint64_t fee = 300; 
 uint8_t sig[64];
 uint8_t privateKey[32];
@@ -356,7 +356,7 @@ void loop() {
     JSONVar params; 
     String jsonString;
     if (isGetParameters) {
-        jsonString = getPayloadJs ("4GiRoiHkwqYdFpNJWrJrzPcRqaNWJayG1Lq5ZgLqoZwrZHjj",id_conter);
+        jsonString = getPayloadJs ("4GiRoiHkwqYdFpNJWrJrzPcRqaNWJayG1Lq5ZgLqoZwrZHjj",id_counter);
     } else {
       // fill params as hex     
         param0.append("0x");
@@ -369,13 +369,13 @@ void loop() {
           
         JSONVar extrinsic;        
         extrinsic["jsonrpc"] = "2.0";
-        extrinsic["id"] = (double) id_conter;
+        extrinsic["id"] = (double) id_counter;
         extrinsic["method"] = "author_submitExtrinsic";
         extrinsic["params"] = params;
         jsonString = JSON.stringify(extrinsic);
         edata.clear();
     }
-    id_conter++;
+    id_counter++;
 
     int httpCode = 0 ;
     if (isGetParameters) { 
