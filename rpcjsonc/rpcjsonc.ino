@@ -23,13 +23,24 @@
 #define STAPSK  "xxxxxxxxxx"
 #endif
 
-// commment to old json parsing (used with remote robonomics), uncomment to new one (with localhost)
-#define RESPONSE_STRING_ARRAY
-
 // Balance transfer extrinsic call in other case Datalog record call
 //#define RPC_BALANCE_TX
 
 //#define RPC_TO_LOCAL
+#ifdef RPC_TO_LOCAL
+#ifdef RPC_BALANCE_TX
+    Data head = Data{7,0};     // call header for Balance transfer
+#else
+    Data head = Data{0x10,0};  // call header for Datalog record + some payload
+#endif
+#else
+#ifdef RPC_BALANCE_TX
+    Data head = Data{0x1f,0};  // call header for Balance transfer
+#else
+    Data head = Data{0x33,0}; // call header for Datalog record + some payload
+#endif
+#endif 
+
 #ifdef RPC_TO_LOCAL
 #define GENESIS_HASH     "c0ef85b9b694feb3f7e234b692982c9ae3a166af7b64360da8b7b6cb916e83b6"
 #define CALL_BALANCE_TX  "0700008eaf04151687736326c9fea17e25fc5287613693c912909cb226aa4794f26a4804"
@@ -187,6 +198,7 @@ std::vector<uint8_t> callDatalogRecord (Data head, std::string str) {
 std::vector<uint8_t> callTransferBalance (Data head, std::string str, uint64_t fee ) {
     Data call;
     append(call, head); 
+    append(call, 0); 
     std::vector<uint8_t> dst = hex2bytes (str.c_str()); // derived SS58KEY from SS58DST 
     append(call, dst); 
     append(call, encodeCompact(fee)); // value
@@ -439,33 +451,17 @@ void loop() {
          // 2nd stage: create and send extrinsic        
          if (res) {
            if (isGetParameters) {
-              
-              fj = parseJson (val);
-         
-#ifdef RPC_TO_LOCAL
 #ifdef RPC_BALANCE_TX
-              Data call = callTransferBalance(Data{7,0,0}, SS58KEY, ++fee); // call header for Balance transfer
+              Data call = callTransferBalance(head, SS58KEY, ++fee); // call header for Balance transfer
 #else
-              Data call = callDatalogRecord(Data{0x10,0}, "ook"); // call header for Datalog record + some payload
-#endif
-#else
-#ifdef RPC_BALANCE_TX
-              Data call = callTransferBalance(Data{0x1f, 0, 0}, SS58KEY, ++fee); // call header for Balance transfer
-#else
-              Data call = callDatalogRecord(Data{0x33,0}, "ook"); // call header for Datalog record + some payload
-#endif
-#endif                      
+              Data call = callDatalogRecord(head, "ook"); // call header for Datalog record + some payload
+#endif        
+              fj = parseJson (val);          
               data = doPayload (call, fj.era, fj.nonce, fj.tip, fj.specVersion, fj.tx_version, fj.ghash, fj.bhash);
               Data signature = doSign (data, privateKey, publicKey);
               std::vector<std::uint8_t> pubKey( reinterpret_cast<std::uint8_t*>(std::begin(publicKey)), reinterpret_cast<std::uint8_t*>(std::end(publicKey)));               
               edata = doEncode (signature, pubKey, fj.era, fj.nonce, fj.tip, call);
                             
-              Serial.println("extrinstic data:");
-              for(std::vector<byte>::size_type i = 0; i != edata.size(); i++) {
-                 Serial.printf("%02x",edata[i]);
-              }             
-              Serial.printf("\nRPC extrinstic done\n");
-              
               isGetParameters = false;
            } else {
               // create JSON and POST
