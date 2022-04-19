@@ -43,12 +43,10 @@
 
 #ifdef RPC_TO_LOCAL
 #define GENESIS_HASH     "c0ef85b9b694feb3f7e234b692982c9ae3a166af7b64360da8b7b6cb916e83b6"
-#define CALL_BALANCE_TX  "0700008eaf04151687736326c9fea17e25fc5287613693c912909cb226aa4794f26a4804"
 #define URLRPC "http://192.168.0.102:9933"
 #define TRANSACTION "http://192.168.0.102:9933"
 #else
 #define GENESIS_HASH     "631ccc82a078481584041656af292834e1ae6daab61d2875b4dd0c14bb9b17bc"
-#define CALL_BALANCE_TX  "1f00008eaf04151687736326c9fea17e25fc5287613693c912909cb226aa4794f26a4804"
 #define URLRPC "http://kusama.rpc.robonomics.network/rpc/"
 #define TRANSACTION "http://kusama.rpc.robonomics.network/rpc/"
 #endif
@@ -56,12 +54,7 @@
 #define BLOCK_HASH   "0xadb2edbde7e96a00d8c2fe37916bd76d395710d7f794d86c7339066b814f60d9"
 #define SS58DEST     "5FHneW46xGXgs5mUiveU4sbTyGBzmstUspZC92UhjJM694ty"
 #define SS58KEY      "8eaf04151687736326c9fea17e25fc5287613693c912909cb226aa4794f26a48"
-
-typedef struct uint128_s
-{
-  uint64_t lsb;
-  uint64_t msb;
-}uint128_t;
+#define RECORD_DATA  "hey"
 
 typedef struct {
    std::string ghash;      // genesis hash
@@ -96,7 +89,7 @@ static constexpr TWSS58AddressType network = TWSS58AddressTypeKusama;
 bool isGetParameters = true;
 Data edata;
 uint64_t id_counter = 0; 
-uint64_t fee = 300; 
+uint64_t fee = 330; 
 uint8_t sig[64];
 uint8_t privateKey[32];
 uint8_t publicKey[32];
@@ -454,7 +447,7 @@ void loop() {
 #ifdef RPC_BALANCE_TX
               Data call = callTransferBalance(head, SS58KEY, ++fee); // call header for Balance transfer
 #else
-              Data call = callDatalogRecord(head, "ook"); // call header for Datalog record + some payload
+              Data call = callDatalogRecord(head, RECORD_DATA); // call header for Datalog record + some payload
 #endif        
               fj = parseJson (val);          
               data = doPayload (call, fj.era, fj.nonce, fj.tip, fj.specVersion, fj.tx_version, fj.ghash, fj.bhash);
