@@ -1,6 +1,7 @@
 #include <cstdint>
 #include <vector>
 #include <string>
+#include <iterator> 
 #include <array>
 
 #include <Arduino.h>
@@ -216,6 +217,27 @@ std::vector<uint8_t> doSign(Data data, uint8_t privateKey[32], uint8_t publicKey
     return signature;
 }
 
+std::vector<uint8_t> doEncode (Data signature, Data pubKey, uint32_t era, uint64_t nonce, uint64_t tip, Data call) {
+    Data edata;
+    append(edata, Data{extrinsicFormat | signedBit});  // version header
+    append(edata,0);
+
+    //std::vector<std::byte> pubKey( reinterpret_cast<std::byte*>(std::begin(publicKey)), reinterpret_cast<std::byte*>(std::end(publicKey)));
+    append(edata,pubKey);  // signer public key
+    append(edata, sigTypeEd25519); // signature type
+    append(edata, signature);      // signatured payload
+              
+    // era / nonce / tip // append(edata, encodeEraNonceTip());
+    append(edata, encodeCompact(era)); // era; note: it simplified to encode, maybe need to rewrite
+    append(edata, encodeCompact(nonce)); 
+    append(edata, encodeCompact(tip));                            
+  
+    append(edata, call);
+    encodeLengthPrefix(edata); // append length
+              
+    return edata;
+}
+
 std::string swapEndian(String str) {
     std::string hex = str.c_str();
     std::string bytes;
@@ -428,51 +450,15 @@ void loop() {
 #endif                      
               data = doPayload (call, eraI, nonce, tip, specVersion, tx_version, GENESIS_HASH, GENESIS_HASH);
               Data signature = doSign (data, privateKey, publicKey);
-
-              // == encodeSignature(publicKey, signature) ; == 
-              append(edata, Data{extrinsicFormat | signedBit});  // version header
-              append(edata,0);
-             
-              //append(edata, encodeAccountId(publicKey.bytes, encodeRawAccount(network, specVersion)));  // signer public key
-#ifdef RESPONSE_STRING_ARRAY
-              bool etype =  encodeRawAccount(network, 16); // specVersion = 1
-#else 
-              bool etype =  encodeRawAccount(network, specVersion);
-#endif    
-              Serial.printf("\nAccountID type %d, data:\n", etype);
-              for (int i = 0; i < 32; i++) {
-                Serial.printf("%02x",publicKey[i]);
-              }
-              Serial.println("");
-    
-              std::vector<std::uint8_t> pubKey( reinterpret_cast<std::uint8_t*>(std::begin(publicKey)), reinterpret_cast<std::uint8_t*>(std::end(publicKey)));
-              //append(edata, encodeAccountId(pubKey,etype));  // signer public key
-              append(edata,pubKey);  // signer public key
-              
-              append(edata, sigTypeEd25519); // signature type
-            
-              append(edata, signature);      // signatured payload
-              
-              // era / nonce / tip // append(edata, encodeEraNonceTip());
-#ifdef RESPONSE_STRING_ARRAY
-              append(edata, encodeCompact(eraI)); // era; note: it simplified to encode, maybe need to rewrite
-              append(edata, encodeCompact(nonce)); 
-              append(edata, encodeCompact(tip));                            
-#else
-              append(edata, encodeCompact(eraI)); // era; note: it simplified to encode, maybe need to rewrite
-              append(edata, encodeCompact(nonce));
-              append(edata,encodeCompact(tip));
-#endif        
-              append(edata, call);
-              encodeLengthPrefix(edata); // append length
+              std::vector<std::uint8_t> pubKey( reinterpret_cast<std::uint8_t*>(std::begin(publicKey)), reinterpret_cast<std::uint8_t*>(std::end(publicKey)));               
+              edata = doEncode (signature, pubKey, eraI, nonce, tip, call);
                             
-              char pl[edata.size()];
-              std::copy(edata.begin(), edata.end(), pl);
-              Serial.printf("size %d\n", edata.size());
-              for (int i = 0; i < edata.size();i++) {
-                Serial.printf("%02x",pl[i]);
-              }              
+              Serial.println("extrinstic data:");
+              for(std::vector<byte>::size_type i = 0; i != edata.size(); i++) {
+                 Serial.printf("%02x",edata[i]);
+              }             
               Serial.printf("\nRPC extrinstic done\n");
+              
               isGetParameters = false;
            } else {
               // create JSON and POST
