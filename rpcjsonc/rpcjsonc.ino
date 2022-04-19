@@ -44,11 +44,9 @@
 #ifdef RPC_TO_LOCAL
 #define GENESIS_HASH     "c0ef85b9b694feb3f7e234b692982c9ae3a166af7b64360da8b7b6cb916e83b6"
 #define URLRPC "http://192.168.0.102:9933"
-#define TRANSACTION "http://192.168.0.102:9933"
 #else
 #define GENESIS_HASH     "631ccc82a078481584041656af292834e1ae6daab61d2875b4dd0c14bb9b17bc"
 #define URLRPC "http://kusama.rpc.robonomics.network/rpc/"
-#define TRANSACTION "http://kusama.rpc.robonomics.network/rpc/"
 #endif
 
 #define BLOCK_HASH   "0xadb2edbde7e96a00d8c2fe37916bd76d395710d7f794d86c7339066b814f60d9"
@@ -396,9 +394,9 @@ void loop() {
     
       httpCode = http.POST(jsonString);  // GET_PAYLOAD
     } else {
-      Serial.printf("[HTTP] to %s\n", TRANSACTION); 
+      Serial.printf("[HTTP] to %s\n", URLRPC); 
 
-      http.begin(client, TRANSACTION); // TRANSACTION ot URLRPC ?
+      http.begin(client, URLRPC); 
       http.addHeader("Content-Type", "application/json");
      // http.addHeader("Accept" , "text/plain");
       Serial.print("[HTTP] POST:\n");
