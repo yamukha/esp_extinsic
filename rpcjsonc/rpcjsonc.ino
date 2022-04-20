@@ -339,6 +339,10 @@ String fillParamsJs (std::vector<uint8_t> data, uint64_t id_cnt) {
  
     return jsonString;
 }
+/*
+rpcProvider = new RpcProvider(WiFiClient, HTTPClient, );
+res = rpcProvider.DatalogRecord(URLRPC,record);
+*/
  
 void setup() {
 
@@ -356,6 +360,8 @@ void setup() {
   Serial.println(WiFi.localIP());
 
   //Ed25519::generatePrivateKey(privateKey);
+  // key from mnemonic = "old leopard transfer rib spatial phone calm indicate online fire caution review"
+  // derived ss58 by python script "5HhFH9GvwCST4kRVoFREE7qDJcjYteR5unhQCrBGhhGuRgNb"
   std::vector<uint8_t> vk = hex2bytes("da3cf5b1e9144931a0f0db65664aab662673b099415a7f8121b7245fb0be4143");
   std::copy(vk.begin(), vk.end(), privateKey);
   
@@ -375,7 +381,7 @@ void loop() {
     JSONVar params; 
     String jsonString;
     if (isGetParameters) {
-        jsonString = getPayloadJs ("4GiRoiHkwqYdFpNJWrJrzPcRqaNWJayG1Lq5ZgLqoZwrZHjj",id_counter);
+        jsonString = getPayloadJs ("5HhFH9GvwCST4kRVoFREE7qDJcjYteR5unhQCrBGhhGuRgNb",id_counter);
     } else {     
         jsonString = fillParamsJs (edata,id_counter);
         edata.clear();
