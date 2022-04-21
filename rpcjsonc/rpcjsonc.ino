@@ -49,10 +49,13 @@
 #define URLRPC "http://kusama.rpc.robonomics.network/rpc/"
 #endif
 
+#define PRIVKEY      "da3cf5b1e9144931a0f0db65664aab662673b099415a7f8121b7245fb0be4143"
+#define SS58ADR       "5HhFH9GvwCST4kRVoFREE7qDJcjYteR5unhQCrBGhhGuRgNb"
 #define BLOCK_HASH   "0xadb2edbde7e96a00d8c2fe37916bd76d395710d7f794d86c7339066b814f60d9"
-#define SS58DEST     "5FHneW46xGXgs5mUiveU4sbTyGBzmstUspZC92UhjJM694ty"
+//#define SS58DEST     "5FHneW46xGXgs5mUiveU4sbTyGBzmstUspZC92UhjJM694ty"
 #define SS58KEY      "8eaf04151687736326c9fea17e25fc5287613693c912909cb226aa4794f26a48"
 #define RECORD_DATA  "hey"
+
 
 typedef struct {
    std::string ghash;      // genesis hash
@@ -339,10 +342,51 @@ String fillParamsJs (std::vector<uint8_t> data, uint64_t id_cnt) {
  
     return jsonString;
 }
-/*
-rpcProvider = new RpcProvider(WiFiClient, HTTPClient, );
-res = rpcProvider.DatalogRecord(URLRPC,record);
-*/
+
+typedef struct {
+   std::string body;      // responce body
+   uint32_t code;         // http responce code 200, 404, 500 etc.
+} RpcResult;
+
+class RobonomicsRpc { 
+  public:     
+   RobonomicsRpc (WiFiClient client, std::string url, std::string key)
+        : wifi_(client), url_(url), key_(key)
+    {};
+
+   RpcResult DatalogRecord (std::string record) {
+      
+      HTTPClient http;
+      http.begin(wifi_, url_.c_str());
+      http.addHeader("Content-Type", "application/json");
+      Serial.print("[HTTP]+POST:\n");
+      Serial.println(GET_PAYLOAD); // jsonString
+    
+      int httpCode = http.POST(GET_PAYLOAD);  // GET_PAYLOAD
+
+      if (httpCode > 0) {
+          Serial.printf("[HTTP]+POST code: %d\n", httpCode);
+            if (httpCode == HTTP_CODE_OK) {
+              const String& payload = http.getString();
+              Serial.println("received:");
+              Serial.println(payload);
+              RpcResult r {"O.K", httpCode};
+              return r;
+           }
+      } else {
+          RpcResult r {"htpp > 0", httpCode};
+          return r;
+      }
+      RpcResult r {"http =< 0", httpCode};
+      return r;           
+   };
+    
+   private:
+    std::string url_;
+    std::string key_;
+    WiFiClient wifi_;
+  
+};
  
 void setup() {
 
@@ -377,7 +421,10 @@ void loop() {
     WiFiClient client;
     HTTPClient http;
     Data data;
-                       
+    RobonomicsRpc rpcProvider(client, URLRPC, PRIVKEY);
+    RpcResult r = rpcProvider.DatalogRecord("Hello");
+    Serial.printf("[RPC] %ld %s\n", r.code, r.body.c_str());
+                     
     JSONVar params; 
     String jsonString;
     if (isGetParameters) {
