@@ -3,10 +3,10 @@
 #include <string>
 #include <iterator> 
 #include <array>
+#include <Scheduler.h>
 
 #include <Arduino.h>
 #include  <Arduino_JSON.h>
-//#include <ArduinoJson.h>
 #include <Data.h>
 
 #include <Crypto.h>
@@ -381,49 +381,46 @@ class RobonomicsRpc {
       return r;           
    };
     
-   private:
+  private:
     std::string url_;
     std::string key_;
     WiFiClient wifi_;
   
 };
- 
-void setup() {
 
-  Serial.begin(115200);
-  Serial.println();
+class RpcTask : public Task {
+  protected:
+    void setup() {
+       Serial.println("RPC task init");  
+    }
 
-  WiFi.begin(STASSID, STAPSK);
+    void loop() {
+      if ((WiFi.status() == WL_CONNECTED)) { 
+        WiFiClient client;
+        Serial.println("RPC task run");
+        RobonomicsRpc rpcProvider(client, URLRPC, PRIVKEY);
+        RpcResult r = rpcProvider.DatalogRecord("Hello");
+        Serial.printf("[RPC] %ld %s\n", r.code, r.body.c_str());  
+        delay(1000);
+      }
+    }
 
-  while (WiFi.status() != WL_CONNECTED) {
-    delay(500);
-    Serial.print(".");
+  private:
+    uint8_t state;
+} rpcTask;
+
+class MainTask : public Task {
+  void setup() {
+     Serial.println("init MainTask");
   }
-  Serial.println("");
-  Serial.printf ("Connected to SSID %s own IP address \n", STASSID);
-  Serial.println(WiFi.localIP());
-
-  //Ed25519::generatePrivateKey(privateKey);
-  // key from mnemonic = "old leopard transfer rib spatial phone calm indicate online fire caution review"
-  // derived ss58 by python script "5HhFH9GvwCST4kRVoFREE7qDJcjYteR5unhQCrBGhhGuRgNb"
-  std::vector<uint8_t> vk = hex2bytes("da3cf5b1e9144931a0f0db65664aab662673b099415a7f8121b7245fb0be4143");
-  std::copy(vk.begin(), vk.end(), privateKey);
   
-  Ed25519::derivePublicKey(publicKey, privateKey);  
-  //std::vector<uint8_t> pk = hex2bytes("f90bc712b5f2864051353177a9d627605d4bf7ec36c7df568cfdcea9f237c185");
-  //std::copy(pk.begin(), pk.end(), publicKey);  
-}
-  
-void loop() {
+ void loop() {
     
   if ((WiFi.status() == WL_CONNECTED)) {
 
     WiFiClient client;
     HTTPClient http;
     Data data;
-    RobonomicsRpc rpcProvider(client, URLRPC, PRIVKEY);
-    RpcResult r = rpcProvider.DatalogRecord("Hello");
-    Serial.printf("[RPC] %ld %s\n", r.code, r.body.c_str());
                      
     JSONVar params; 
     String jsonString;
@@ -531,4 +528,40 @@ void loop() {
   http.end();
   delay(2000);
   }// WiFI
+ } 
+
+private:
+    uint8_t state;
+} mainTask;
+
+void setup() {
+
+  Serial.begin(115200);
+  Serial.println();
+
+  WiFi.begin(STASSID, STAPSK);
+
+  while (WiFi.status() != WL_CONNECTED) {
+    delay(500);
+    Serial.print(".");
+  }
+  Serial.println("");
+  Serial.printf ("Connected to SSID %s own IP address \n", STASSID);
+  Serial.println(WiFi.localIP());
+
+  //Ed25519::generatePrivateKey(privateKey);
+  // key from mnemonic = "old leopard transfer rib spatial phone calm indicate online fire caution review"
+  // derived ss58 by python script "5HhFH9GvwCST4kRVoFREE7qDJcjYteR5unhQCrBGhhGuRgNb"
+  std::vector<uint8_t> vk = hex2bytes("da3cf5b1e9144931a0f0db65664aab662673b099415a7f8121b7245fb0be4143");
+  std::copy(vk.begin(), vk.end(), privateKey);
+  
+  Ed25519::derivePublicKey(publicKey, privateKey);  
+  //std::vector<uint8_t> pk = hex2bytes("f90bc712b5f2864051353177a9d627605d4bf7ec36c7df568cfdcea9f237c185");
+  //std::copy(pk.begin(), pk.end(), publicKey);  
+
+  Scheduler.start(&mainTask);
+  Scheduler.start(&rpcTask);
+  Scheduler.begin();
 }
+
+void loop () {}
