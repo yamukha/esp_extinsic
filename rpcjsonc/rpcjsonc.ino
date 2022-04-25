@@ -618,7 +618,7 @@ void setup() {
   //std::vector<uint8_t> pk = hex2bytes("f90bc712b5f2864051353177a9d627605d4bf7ec36c7df568cfdcea9f237c185");
   //std::copy(pk.begin(), pk.end(), publicKey);  
 
-  //Scheduler.start(&mainTask);
+  Scheduler.start(&mainTask);
   Scheduler.start(&rpcTask);
   Scheduler.begin();
 }
