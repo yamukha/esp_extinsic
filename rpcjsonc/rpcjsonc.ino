@@ -327,7 +327,7 @@ String fillParamsJs (std::vector<uint8_t> data, uint64_t id_cnt) {
     
     param0.append("0x");
     char ch [2];   
-    for (int i = 0; i < edata.size();i++) {
+    for (int i = 0; i < data.size();i++) {
         sprintf(ch,"%02x",data[i]);
         param0.append(ch);
     }
@@ -350,19 +350,33 @@ typedef struct {
 
 class RobonomicsRpc { 
   public:     
-   RobonomicsRpc (WiFiClient client, std::string url, std::string key)
-        : wifi_(client), url_(url), key_(key)
-    {};
+    RobonomicsRpc (WiFiClient client, std::string url, std::string key)
+        : wifi_(client), url_(url), key_(key), isGetParameters_ (true) 
+        {};
 
-   RpcResult DatalogRecord (std::string record) {
-      
-      HTTPClient http;
+    RpcResult DatalogRecord (std::string record) {
+
+    Data edata_;
+    
+    for (int a = 0 ; a < 2;  a++) {
+
+      HTTPClient http;    
       http.begin(wifi_, url_.c_str());
       http.addHeader("Content-Type", "application/json");
-      Serial.print("[HTTP]+POST:\n");
-      Serial.println(GET_PAYLOAD); // jsonString
+      Serial.print("[HTTP]+POST:\n"); 
+      JSONVar params; 
+      String jsonString;
+      if (isGetParameters_) {
+        jsonString = getPayloadJs ("5HhFH9GvwCST4kRVoFREE7qDJcjYteR5unhQCrBGhhGuRgNb",id_counter);
+      } else {
+        jsonString = fillParamsJs (edata_,id_counter);
+        edata_.clear();
+      }
+      Serial.println("sent:");
+      Serial.println(jsonString);
+      id_counter++;
     
-      int httpCode = http.POST(GET_PAYLOAD);  // GET_PAYLOAD
+      int httpCode = http.POST(jsonString);
 
       if (httpCode > 0) {
           Serial.printf("[HTTP]+POST code: %d\n", httpCode);
@@ -370,22 +384,80 @@ class RobonomicsRpc {
               const String& payload = http.getString();
               Serial.println("received:");
               Serial.println(payload);
-              RpcResult r {"O.K", httpCode};
-              return r;
-           }
+         
+              JSONVar myObject = JSON.parse(payload);
+              if (JSON.typeof(myObject) == "undefined") {
+                  Serial.println("");
+                  RpcResult r {"Parsing input failed!", -100};
+                  return r;               
+              } else {
+                // RPC FSM                 
+                JSONVar keys = myObject.keys();
+                bool res_ = false;
+                JSONVar val;
+                FromJson fj;
+                  
+                //"result" or "error" 
+                for (int i = 0; i < keys.length(); i++) { 
+                  JSONVar value = myObject[keys[i]];
+                  String str  = JSON.stringify (keys[i]);
+                 
+                  if(strstr(str.c_str(),"result")) {
+                    res_ = true;
+                    val = value;
+                  }
+       
+                  if(strstr(str.c_str(),"error"))  {
+                    val = value;
+                    isGetParameters_ = true;
+                  }
+                }
+                
+                // -- 2nd stage: create and send extrinsic
+                if (res_) {
+                  Serial.println("Try 2nd stage with extrinsic"); 
+                  if (isGetParameters_) {
+                    fj = parseJson (val);
+                    Data call = callDatalogRecord(head, record); // call header for Datalog record + some payload
+                    Data data_ = doPayload (call, fj.era, fj.nonce, fj.tip, fj.specVersion, fj.tx_version, fj.ghash, fj.bhash);
+                    Data signature_ = doSign (data_, privateKey, publicKey);
+                    std::vector<std::uint8_t> pubKey( reinterpret_cast<std::uint8_t*>(std::begin(publicKey)), reinterpret_cast<std::uint8_t*>(std::end(publicKey)));               
+                    edata_ = doEncode (signature_, pubKey, fj.era, fj.nonce, fj.tip, call);
+                    Serial.printf("size %d\n", edata_.size()); 
+                    isGetParameters_ = false;
+                  } else {
+                    isGetParameters_ = true;
+                    RpcResult r {"O.K", httpCode};
+                    return r;
+                  }
+                } else {
+                  isGetParameters_ = true;
+                  RpcResult r {"htpp O.K. but RPC error ", httpCode};
+                  return r;
+               }// res_
+           } // json parse
+        } else {
+            isGetParameters_ = true;
+            RpcResult r {"http not 200 error: ", httpCode};
+            return r;
+         } // httpCode == HTTP_CODE_OK
       } else {
-          RpcResult r {"htpp > 0", httpCode};
-          return r;
-      }
-      RpcResult r {"http =< 0", httpCode};
-      return r;           
-   };
+        isGetParameters_ = true;
+        RpcResult r {"http > 0 error: ", httpCode};
+        return r;
+      } // httpCode > 0
+    } // for
+    isGetParameters_ = true;
+    RpcResult r {"http: ", HTTP_CODE_OK};
+    return r; 
+  };
     
   private:
     std::string url_;
     std::string key_;
     WiFiClient wifi_;
-  
+    bool isGetParameters_;
+    //id_counter_;
 };
 
 class RpcTask : public Task {
@@ -399,7 +471,7 @@ class RpcTask : public Task {
         WiFiClient client;
         Serial.println("RPC task run");
         RobonomicsRpc rpcProvider(client, URLRPC, PRIVKEY);
-        RpcResult r = rpcProvider.DatalogRecord("Hello");
+        RpcResult r = rpcProvider.DatalogRecord(std::to_string(id_counter));
         Serial.printf("[RPC] %ld %s\n", r.code, r.body.c_str());  
         delay(1000);
       }
@@ -433,28 +505,15 @@ class MainTask : public Task {
     id_counter++;
 
     int httpCode = 0 ;
-    if (isGetParameters) { 
-      Serial.printf("[HTTP] to %s\n", URLRPC);
-
-      http.begin(client, URLRPC); 
-      http.addHeader("Content-Type", "application/json");
-
-      Serial.print("[HTTP] POST:\n");
-      Serial.println(jsonString);
+    Serial.printf("[HTTP] to %s\n", URLRPC); 
+    http.begin(client, URLRPC); 
+    http.addHeader("Content-Type", "application/json");
+    // http.addHeader("Accept" , "text/plain");
+    Serial.print("[HTTP] POST:\n");
+    Serial.println(jsonString);
     
-      httpCode = http.POST(jsonString);  // GET_PAYLOAD
-    } else {
-      Serial.printf("[HTTP] to %s\n", URLRPC); 
-
-      http.begin(client, URLRPC); 
-      http.addHeader("Content-Type", "application/json");
-     // http.addHeader("Accept" , "text/plain");
-      Serial.print("[HTTP] POST:\n");
-      Serial.println(jsonString);
-    
-     httpCode = http.POST(jsonString);  // submitExtrinsic
-    }
-    
+    httpCode = http.POST(jsonString);  // submitExtrinsic
+        
     if (httpCode > 0) {
       
       Serial.printf("[HTTP] POST code: %d\n", httpCode);
@@ -559,7 +618,7 @@ void setup() {
   //std::vector<uint8_t> pk = hex2bytes("f90bc712b5f2864051353177a9d627605d4bf7ec36c7df568cfdcea9f237c185");
   //std::copy(pk.begin(), pk.end(), publicKey);  
 
-  Scheduler.start(&mainTask);
+  //Scheduler.start(&mainTask);
   Scheduler.start(&rpcTask);
   Scheduler.begin();
 }
