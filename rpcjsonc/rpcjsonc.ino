@@ -486,110 +486,14 @@ class MainTask : public Task {
      Serial.println("init MainTask");
   }
   
- void loop() {
-    
-  if ((WiFi.status() == WL_CONNECTED)) {
+  void loop() {
+   if ((WiFi.status() == WL_CONNECTED)) {
+     Serial.printf("[MAIN] %ld\n", id_counter++);
+     delay(2000);
+   }// WiFI
+  } 
 
-    WiFiClient client;
-    HTTPClient http;
-    Data data;
-                     
-    JSONVar params; 
-    String jsonString;
-    if (isGetParameters) {
-        jsonString = getPayloadJs ("5HhFH9GvwCST4kRVoFREE7qDJcjYteR5unhQCrBGhhGuRgNb",id_counter);
-    } else {     
-        jsonString = fillParamsJs (edata,id_counter);
-        edata.clear();
-    }
-    id_counter++;
-
-    int httpCode = 0 ;
-    Serial.printf("[HTTP] to %s\n", URLRPC); 
-    http.begin(client, URLRPC); 
-    http.addHeader("Content-Type", "application/json");
-    // http.addHeader("Accept" , "text/plain");
-    Serial.print("[HTTP] POST:\n");
-    Serial.println(jsonString);
-    
-    httpCode = http.POST(jsonString);  // submitExtrinsic
-        
-    if (httpCode > 0) {
-      
-      Serial.printf("[HTTP] POST code: %d\n", httpCode);
-      // 1st stage: get paramteres to form extrinsic
-      if (httpCode == HTTP_CODE_OK) {
-        const String& payload = http.getString();
-        Serial.println("received:");
-        Serial.println(payload);
- 
-       JSONVar myObject = JSON.parse(payload);
-       if (JSON.typeof(myObject) == "undefined") {
-        Serial.println("Parsing input failed!");
-       }
-       else {
-         JSONVar keys = myObject.keys();
-         bool res = false;
-         JSONVar val;
-         FromJson fj;
-                  
-         //"result" or "error"
-         for (int i = 0; i < keys.length(); i++) {
-             JSONVar value = myObject[keys[i]];
-             String str  = JSON.stringify (keys[i]);
-         
-             if(strstr(str.c_str(),"result")) {
-               res = true;
-               val = value; //Serial.println( JSON.typeof(value)); 
-             }
-       
-             if(strstr(str.c_str(),"error"))  {
-               val = value;
-               isGetParameters = true;
-             }       
-         }
-         // 2nd stage: create and send extrinsic        
-         if (res) {
-           if (isGetParameters) {
-#ifdef RPC_BALANCE_TX
-              Data call = callTransferBalance(head, SS58KEY, ++fee); // call header for Balance transfer
-#else
-              Data call = callDatalogRecord(head, RECORD_DATA); // call header for Datalog record + some payload
-#endif        
-              fj = parseJson (val);          
-              data = doPayload (call, fj.era, fj.nonce, fj.tip, fj.specVersion, fj.tx_version, fj.ghash, fj.bhash);
-              Data signature = doSign (data, privateKey, publicKey);
-              std::vector<std::uint8_t> pubKey( reinterpret_cast<std::uint8_t*>(std::begin(publicKey)), reinterpret_cast<std::uint8_t*>(std::end(publicKey)));               
-              edata = doEncode (signature, pubKey, fj.era, fj.nonce, fj.tip, call);
-                            
-              isGetParameters = false;
-           } else {
-              // create JSON and POST
-              Serial.printf("RPC tx done\n");
-              isGetParameters = true;
-           } // isGetParameters
-         } 
-         else {
-             Serial.println(val);
-             isGetParameters = true;
-         }  // res    
-      } // JSON
-    }  //HTTP_CODE_OK
-    else {
-      Serial.printf("[HTTP] POST... failed, error: %s\n", http.errorToString(httpCode).c_str());
-      isGetParameters = true;
-    }
-  } // httpCode > 0
-  else {
-      Serial.printf("[HTTP] httpCode %d, %s\n", httpCode, http.errorToString(httpCode).c_str());
-      isGetParameters = true;
-  }
-  http.end();
-  delay(2000);
-  }// WiFI
- } 
-
-private:
+  private:
     uint8_t state;
 } mainTask;
 
