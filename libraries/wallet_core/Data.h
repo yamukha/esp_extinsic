@@ -45,3 +45,12 @@ template <typename T>
 inline bool has_prefix(const Data& data, T& prefix) {
     return std::equal(prefix.begin(), prefix.end(), data.begin(), data.begin() + std::min(data.size(), prefix.size()));
 }
+
+/*
+inline void encode32LE(uint32_t val, std::vector<uint8_t>& data) {
+    data.push_back(static_cast<uint8_t>(val));
+    data.push_back(static_cast<uint8_t>((val >> 8)));
+    data.push_back(static_cast<uint8_t>((val >> 16)));
+    data.push_back(static_cast<uint8_t>((val >> 24)));
+}
+*/
