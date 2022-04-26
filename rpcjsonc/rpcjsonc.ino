@@ -34,7 +34,6 @@
 
 uint64_t id_counter = 0; 
 uint8_t privateKey[32];
-uint8_t publicKey[32];
 
 typedef struct {
    std::string body;      // responce body
@@ -45,7 +44,11 @@ class RobonomicsRpc {
   public:     
     RobonomicsRpc (WiFiClient client, std::string url, std::string key)
         : wifi_(client), url_(url), key_(key), isGetParameters_ (true) 
-        {};
+        {  
+          Ed25519::derivePublicKey(publicKey_, privateKey);  
+          //std::vector<uint8_t> pk = hex2bytes("f90bc712b5f2864051353177a9d627605d4bf7ec36c7df568cfdcea9f237c185");
+          //std::copy(pk.begin(), pk.end(), publicKey);  
+         };
 
     RpcResult DatalogRecord (std::string record) {
 
@@ -113,8 +116,8 @@ class RobonomicsRpc {
                     fj = parseJson (val);
                     Data call = callDatalogRecord(head, record); // call header for Datalog record + some payload
                     Data data_ = doPayload (call, fj.era, fj.nonce, fj.tip, fj.specVersion, fj.tx_version, fj.ghash, fj.bhash);
-                    Data signature_ = doSign (data_, privateKey, publicKey);
-                    std::vector<std::uint8_t> pubKey( reinterpret_cast<std::uint8_t*>(std::begin(publicKey)), reinterpret_cast<std::uint8_t*>(std::end(publicKey)));               
+                    Data signature_ = doSign (data_, privateKey, publicKey_);
+                    std::vector<std::uint8_t> pubKey( reinterpret_cast<std::uint8_t*>(std::begin(publicKey_)), reinterpret_cast<std::uint8_t*>(std::end(publicKey_)));               
                     edata_ = doEncode (signature_, pubKey, fj.era, fj.nonce, fj.tip, call);
                     Serial.printf("size %d\n", edata_.size()); 
                     isGetParameters_ = false;
@@ -150,6 +153,7 @@ class RobonomicsRpc {
     std::string key_;
     WiFiClient wifi_;
     bool isGetParameters_;
+    uint8_t publicKey_[32];
 };
 
 class RpcTask : public Task {
@@ -209,10 +213,6 @@ void setup() {
   // derived ss58 by python script "5HhFH9GvwCST4kRVoFREE7qDJcjYteR5unhQCrBGhhGuRgNb"
   std::vector<uint8_t> vk = hex2bytes("da3cf5b1e9144931a0f0db65664aab662673b099415a7f8121b7245fb0be4143");
   std::copy(vk.begin(), vk.end(), privateKey);
-  
-  Ed25519::derivePublicKey(publicKey, privateKey);  
-  //std::vector<uint8_t> pk = hex2bytes("f90bc712b5f2864051353177a9d627605d4bf7ec36c7df568cfdcea9f237c185");
-  //std::copy(pk.begin(), pk.end(), publicKey);  
 
   Scheduler.start(&mainTask);
   Scheduler.start(&rpcTask);
