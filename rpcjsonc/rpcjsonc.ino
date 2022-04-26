@@ -42,8 +42,8 @@ typedef struct {
 
 class RobonomicsRpc { 
   public:     
-    RobonomicsRpc (WiFiClient client, std::string url, std::string key)
-        : wifi_(client), url_(url), key_(key), isGetParameters_ (true) 
+    RobonomicsRpc (WiFiClient client, std::string url, std::string key, uint64_t id)
+        : wifi_(client), url_(url), key_(key), isGetParameters_ (true), id_counter_(id)
         {  
           Ed25519::derivePublicKey(publicKey_, privateKey);  
           //std::vector<uint8_t> pk = hex2bytes("f90bc712b5f2864051353177a9d627605d4bf7ec36c7df568cfdcea9f237c185");
@@ -63,14 +63,14 @@ class RobonomicsRpc {
       JSONVar params; 
       String jsonString;
       if (isGetParameters_) {
-        jsonString = getPayloadJs ("5HhFH9GvwCST4kRVoFREE7qDJcjYteR5unhQCrBGhhGuRgNb",id_counter);
+        jsonString = getPayloadJs ("5HhFH9GvwCST4kRVoFREE7qDJcjYteR5unhQCrBGhhGuRgNb",id_counter_);
       } else {
-        jsonString = fillParamsJs (edata_,id_counter);
+        jsonString = fillParamsJs (edata_,id_counter_);
         edata_.clear();
       }
       Serial.println("sent:");
       Serial.println(jsonString);
-      id_counter++;
+      id_counter_++;
     
       int httpCode = http.POST(jsonString);
 
@@ -154,6 +154,7 @@ class RobonomicsRpc {
     WiFiClient wifi_;
     bool isGetParameters_;
     uint8_t publicKey_[32];
+    uint64_t id_counter_;
 };
 
 class RpcTask : public Task {
@@ -166,8 +167,9 @@ class RpcTask : public Task {
       if ((WiFi.status() == WL_CONNECTED)) { 
         WiFiClient client;
         Serial.println("RPC task run");
-        RobonomicsRpc rpcProvider(client, URLRPC, PRIVKEY);
-        RpcResult r = rpcProvider.DatalogRecord(std::to_string(id_counter));
+        RobonomicsRpc rpcProvider(client, URLRPC, PRIVKEY, id_counter);
+        RpcResult r = rpcProvider.DatalogRecord(std::to_string(id_counter)); // id_counter as payload just for example
+        id_counter = id_counter + 2;
         Serial.printf("[RPC] %ld %s\n", r.code, r.body.c_str());  
         delay(1000);
       }
