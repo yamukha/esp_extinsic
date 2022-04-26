@@ -17,6 +17,16 @@ typedef struct {
    uint32_t era;
 } FromJson;
 
+std::vector<uint8_t> hex2bytes (std::string hex) {
+    std::vector<uint8_t> bytes;
+    for (unsigned int i = 0; i < hex.length(); i += 2) {
+      std::string byteString = hex.substr(i, 2);
+      uint8_t byte = (uint8_t) strtol(byteString.c_str(), NULL, 16);
+      bytes.push_back(byte);
+    }
+    return bytes;
+}
+
 std::string swapEndian(std::string str) {
     std::string hex = str.c_str();
     std::string bytes;

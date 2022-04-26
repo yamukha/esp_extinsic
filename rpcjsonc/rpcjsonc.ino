@@ -9,7 +9,8 @@
 #include  <Arduino_JSON.h>
 #include <Data.h>
 #include <Utils.h>
-//#include <Extrinsic.h>
+#include <Call.h>
+#include <Extrinsic.h>
 #include <Encoder.h>
 
 #include <Crypto.h>
@@ -61,92 +62,9 @@
             
 #define GET_PAYLOAD "{ \"jsonrpc\":\"2.0\", \"id\":1, \"method\":\"get_payload\", \"params\": [\"4GiRoiHkwqYdFpNJWrJrzPcRqaNWJayG1Lq5ZgLqoZwrZHjj\"]}"
 
-bool isGetParameters = true;
-Data edata;
 uint64_t id_counter = 0; 
-uint64_t fee = 330; 
-uint8_t sig[64];
 uint8_t privateKey[32];
 uint8_t publicKey[32];
-
-std::vector<uint8_t> hex2bytes (std::string hex) {
-    std::vector<uint8_t> bytes;
-    for (unsigned int i = 0; i < hex.length(); i += 2) {
-      std::string byteString = hex.substr(i, 2);
-      uint8_t byte = (uint8_t) strtol(byteString.c_str(), NULL, 16);
-      bytes.push_back(byte);
-    }
-    return bytes;
-}
-
-std::vector<uint8_t> callDatalogRecord (Data head, std::string str) {
-    Data call;
-    append(call, head);
-    append(call, encodeCompact(str.length()));
-    std::vector<uint8_t> rec(str.begin(), str.end());
-    append(call, rec); 
-    return call;
-}
-
-std::vector<uint8_t> callTransferBalance (Data head, std::string str, uint64_t fee ) {
-    Data call;
-    append(call, head); 
-    append(call, 0); 
-    std::vector<uint8_t> dst = hex2bytes (str.c_str()); // derived SS58KEY from SS58DST 
-    append(call, dst); 
-    append(call, encodeCompact(fee)); // value
-    return call;
-}
-
-std::vector<uint8_t> doPayload (Data call, uint32_t era, uint64_t nonce, uint64_t tip, uint32_t sv, uint32_t tv, std::string gen, std::string block) {
-    Data data;
-    append(data, call);
-    append(data, encodeCompact(era)); // era; note: it simplified to encode, maybe need to rewrite
-    append(data, encodeCompact(nonce));
-    append(data, encodeCompact(tip));
-              
-    encode32LE(sv, data);     // specversion
-    encode32LE(tv, data);     // version
-            
-    std::vector<uint8_t> gh = hex2bytes(gen.c_str());
-    append(data, gh);
-    std::vector<uint8_t> bh = hex2bytes(block.c_str()); // block hash
-    append(data, bh);     
-    return data;
-}
-
-std::vector<uint8_t> doSign(Data data, uint8_t privateKey[32], uint8_t publicKey[32]) {
-  
-    uint8_t payload[data.size()];             
-    uint8_t sig[64];
-     
-    std::copy(data.begin(), data.end(), payload);
-    Ed25519::sign(sig, privateKey, publicKey, payload, data.size());
-           
-    std::vector<byte> signature (sig,sig + 64);   // signed data as bytes vector
-    return signature;
-}
-
-std::vector<uint8_t> doEncode (Data signature, Data pubKey, uint32_t era, uint64_t nonce, uint64_t tip, Data call) {
-    Data edata;
-    append(edata, Data{extrinsicFormat | signedBit});  // version header
-    append(edata,0);
-
-    //std::vector<std::byte> pubKey( reinterpret_cast<std::byte*>(std::begin(publicKey)), reinterpret_cast<std::byte*>(std::end(publicKey)));
-    append(edata,pubKey);  // signer public key
-    append(edata, sigTypeEd25519); // signature type
-    append(edata, signature);      // signatured payload
-              
-    // era / nonce / tip // append(edata, encodeEraNonceTip());
-    append(edata, encodeCompact(era)); // era; note: it simplified to encode, maybe need to rewrite
-    append(edata, encodeCompact(nonce)); 
-    append(edata, encodeCompact(tip));                            
-  
-    append(edata, call);
-    encodeLengthPrefix(edata); // append length
-              
-    return edata;
-}
 
 typedef struct {
    std::string body;      // responce body
