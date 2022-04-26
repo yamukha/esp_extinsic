@@ -3,8 +3,7 @@
 #include <vector>
 #include <string>
 #include  <Arduino_JSON.h>
-
-#define GENESIS_HASH_REMOTE     "631ccc82a078481584041656af292834e1ae6daab61d2875b4dd0c14bb9b17bc"
+#include  "Defines.h"
 
 typedef struct {
    std::string ghash;      // genesis hash
