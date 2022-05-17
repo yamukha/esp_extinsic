@@ -28,15 +28,13 @@ typedef struct {
 
 class RobonomicsRpc { 
   public:     
-    RobonomicsRpc (WiFiClient client, std::string url, std::string key, uint64_t id)
-        : wifi_(client), url_(url), key_(key), isGetParameters_ (true), id_counter_(id)
+    RobonomicsRpc (WiFiClient client, std::string url, std::string key, std::string ss58adr, uint64_t id)
+        : wifi_(client), url_(url), ss58adr_(ss58adr), isGetParameters_ (true), id_counter_(id)
         {  
-          std::vector<uint8_t> vk = hex2bytes("da3cf5b1e9144931a0f0db65664aab662673b099415a7f8121b7245fb0be4143");
+          std::vector<uint8_t> vk = hex2bytes(key);
           std::copy(vk.begin(), vk.end(), privateKey_);
   
           Ed25519::derivePublicKey(publicKey_, privateKey_);  
-          //std::vector<uint8_t> pk = hex2bytes("f90bc712b5f2864051353177a9d627605d4bf7ec36c7df568cfdcea9f237c185");
-          //std::copy(pk.begin(), pk.end(), publicKey);  
          };
 
     RpcResult DatalogRecord (std::string record) {
@@ -52,7 +50,7 @@ class RobonomicsRpc {
       JSONVar params; 
       String jsonString;
       if (isGetParameters_) {
-        jsonString = getPayloadJs ("5HhFH9GvwCST4kRVoFREE7qDJcjYteR5unhQCrBGhhGuRgNb",id_counter_);
+        jsonString = getPayloadJs (ss58adr_,id_counter_);
       } else {
         jsonString = fillParamsJs (edata_,id_counter_);
         edata_.clear();
@@ -139,7 +137,7 @@ class RobonomicsRpc {
     
   private:
     std::string url_;
-    std::string key_;
+    std::string ss58adr_;
     WiFiClient wifi_;
     bool isGetParameters_;
     uint8_t publicKey_[32];
