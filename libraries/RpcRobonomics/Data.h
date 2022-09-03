@@ -20,7 +20,7 @@ inline Data data(const byte* data, size_t size) {
     return std::vector<byte>(data, data + size);
 }
 
-inline void append(Data& data, String suffix, size_t offset) {
+inline void append(Data& data, std::string suffix, size_t offset) {
     std::vector<uint8_t> vec;
     vec.assign(suffix.begin() + offset, suffix.end());
     data.insert(data.end(), suffix.begin(), suffix.end());
