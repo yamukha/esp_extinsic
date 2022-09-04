@@ -10,13 +10,13 @@
 Note: to explore/create existing key/address can be used sub.py script from this repository or subkey utility from substrate
 
 # Inplemented extrinsic methods
-DatalogRecord
-TransferBalance
+- DatalogRecord
+- TransferBalance
 
 # CI
 There are in .github/workflows/ files:
-datalog-tiny-test.yml   ->  act -j libtests ->  to test parts of RpcRobonomics library on linux 
-datalog-tiny.yml        ->  act -j esp8622  ->  to build by arduino-cli  binary for target device
+- datalog-tiny-test.yml   ->  act -j libtests ->  to test parts of RpcRobonomics library on linux 
+- datalog-tiny.yml        ->  act -j esp8622  ->  to build by arduino-cli  binary for target device
 
 # Deploy 
 Note: need to update in rpcjson.ino file STASSID  and STAPSK  macro definitions
