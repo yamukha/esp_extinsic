@@ -6,6 +6,7 @@
 #include <Ed25519.h>
 #include "Encoder.h"
 #include "Utils.h"
+#include "JsonUtils.h"
 
 std::vector<uint8_t> doPayload (Data call, uint32_t era, uint64_t nonce, uint64_t tip, uint32_t sv, uint32_t tv, std::string gen, std::string block) {
     Data data;
