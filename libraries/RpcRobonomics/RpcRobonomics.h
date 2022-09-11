@@ -7,6 +7,7 @@
 //#include <Defines.h>
 #include <Extrinsic.h>
 #include <Call.h>
+#include <JsonUtils.h>
 
 #ifdef RPC_TO_LOCAL
 #ifdef RPC_BALANCE_TX

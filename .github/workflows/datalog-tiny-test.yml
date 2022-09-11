@@ -1,0 +1,29 @@
+name: Datalog tiny 
+on:
+  push:
+    branches:
+    - master
+
+jobs:
+  libtests:
+    runs-on: ubuntu-latest
+   
+    steps:
+      - name: Install g++
+        run: |
+          apt-get install curl git -y
+          cd ~
+        
+      - name: Clone datalog-tiny repo
+        run: |
+          echo " git clone" 
+          cd ~
+          #git clone https://github.com/airalab/robonomics-client-cpp.git
+          git clone https://github.com/yamukha/esp_extinsic.git
+
+      - name: Build 
+        run: |
+          #cd ~/robonomics-client-cpp
+          cd  ~/esp_extinsic/tests
+          g++ test_call.c -o test_call -DUNIT_TEST
+          ./test_call 
