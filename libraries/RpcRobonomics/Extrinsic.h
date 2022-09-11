@@ -2,12 +2,9 @@
 
 #include <vector>
 #include <string>
-//#include <Ed25519.h>
-//#include "../Crypto/src/Ed25519.h"
-//#include "ed25519.h"
 #include "Encoder.h"
 #include "Utils.h"
-//#include "JsonUtils.h"
+
 #ifndef UNIT_TEST
 #include <Ed25519.h>
 #else
