@@ -3,8 +3,6 @@
 #include <vector>
 #include <string>
 #include <cstring>
-#include  "Defines.h"
-
 
 std::vector<uint8_t> hex2bytes (std::string hex) {
     std::vector<uint8_t> bytes;

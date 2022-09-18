@@ -7,6 +7,7 @@
 // cd cryptopp
 // make libcryptopp.a libcryptopp.so
 // sudo make install PREFIX=/usr/local
+// sudo ldconfig
 // 
 // g++ test_call.c -o test_call -DUNIT_TEST -L/usr/local/lib -lcryptopp
 // g++ test_call.c -o test_call -DUNIT_TEST -L/usr/local/lib -l:libcryptopp.a
