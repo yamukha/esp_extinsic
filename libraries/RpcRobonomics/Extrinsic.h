@@ -4,6 +4,7 @@
 #include <string>
 #include "Encoder.h"
 #include "Utils.h"
+#include "Defines.h"
 
 #ifndef UNIT_TEST
 #include <Ed25519.h>
