@@ -124,14 +124,47 @@ Data data = Data {
 
 void  test_doEncode() {
     //doEncode (Data, Data, uint32_t, uint64_t, uint64_t, Data)
-    Data signature = Data {0x33,0};
-    uint8_t publicKey[32];
-    std::vector<uint8_t> pubKey = hex2bytes(PRIVKEY);
-    uint32_t era = 0;
-    uint64_t  nonce = 0;
+    Data signature = Data {
+    0x68, 0xd4, 0xd0, 0x1a, 0x5d, 0xd9, 0x8e, 0xbc,
+    0xa8, 0xa7, 0x93, 0x15, 0x06, 0x93, 0x8b, 0x6f,
+    0x7c, 0x79, 0xab, 0x1b, 0x6b, 0x27, 0x03, 0x60,
+    0xfb, 0x28, 0x6c, 0xd4, 0x9d, 0x54, 0xce, 0x69, 
+    0x1c, 0xeb, 0xf6, 0x07, 0x0f, 0x02, 0x6c, 0xcf,
+    0x78, 0xd8, 0x9d, 0xfd, 0xf6, 0x01, 0xef, 0xc8,
+    0xf4, 0x90, 0xce, 0xc4, 0x56, 0x0a, 0xfb, 0x9b,
+    0xcf, 0x04, 0x35, 0x11, 0xa0, 0x93, 0xa6, 0x0d
+  };
+ 
+   uint8_t publicKey[KEYS_SIZE];
+   uint8_t privateKey[KEYS_SIZE];
+   std::vector<uint8_t> vk = hex2bytes(PRIVKEY);
+   std::copy(vk.begin(), vk.end(), privateKey);
+   
+   // TODO prepare pubkey as separate funtion, 1st uasge in test_doSign()
+   using namespace CryptoPP;
+
+   ed25519::Signer signer = ed25519Signer (privateKey);
+   ed25519::Verifier verifier(signer);
+
+   const ed25519PublicKey& pubKey = dynamic_cast<const ed25519PublicKey&>(verifier.GetPublicKey());
+   auto pt = pubKey.GetPublicKeyBytePtr();
+
+   std::memcpy(publicKey, pt, KEYS_SIZE);
+   std::vector<std::uint8_t> pubKeyVector( reinterpret_cast<std::uint8_t*>(std::begin(publicKey)), reinterpret_cast<std::uint8_t*>(std::end(publicKey)));
+
+    uint32_t era =  0;
+    uint64_t nonce = 0;
     uint64_t tip = 0;
-    Data call = {0x33,0};
-    Data edata = doEncode (signature, pubKey, era, nonce, tip, call);
+
+    auto record = "42";
+    Data head = Data{0x33,0};
+    Data call = callDatalogRecord(head, record);
+
+    Data edata = doEncode (signature, pubKeyVector, era, nonce, tip, call);
+
+    // TODO: assert
+    // assert(std::equal(std::begin(edata), std::end(edata), std::begin(edataPattern)) && "Bytes vector is not equal to expected pattern");
+
 }
 
 int main () {
