@@ -5,6 +5,9 @@
 
 //#define RPC_TO_LOCAL
 
+#define KEYS_SIZE 32
+#define SIGNATURE_SIZE 64
+
 #define GENESIS_HASH_REMOTE     "631ccc82a078481584041656af292834e1ae6daab61d2875b4dd0c14bb9b17bc"
 
 #ifdef RPC_TO_LOCAL

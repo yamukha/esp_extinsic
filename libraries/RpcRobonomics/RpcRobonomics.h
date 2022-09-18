@@ -240,7 +240,7 @@ class RobonomicsRpc {
     std::string ss58adr_;
     WiFiClient wifi_;
     bool isGetParameters_;
-    uint8_t publicKey_[32];
-    uint8_t privateKey_[32];
+    uint8_t publicKey_[KEYS_SIZE];
+    uint8_t privateKey_[KEYS_SIZE];
     uint64_t id_counter_;
 };
