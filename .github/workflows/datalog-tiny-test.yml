@@ -21,9 +21,18 @@ jobs:
           #git clone https://github.com/airalab/robonomics-client-cpp.git
           git clone https://github.com/yamukha/esp_extinsic.git
 
+      - name: Install cryptopp from repo
+        run: |
+          git clone https://github.com/weidai11/cryptopp
+          cd cryptopp
+          make libcryptopp.a libcryptopp.so -j4
+          make install PREFIX=/usr/local  -j4
+          ldconfig
+
       - name: Build 
         run: |
           #cd ~/robonomics-client-cpp
           cd  ~/esp_extinsic/tests
-          g++ test_call.c -o test_call -DUNIT_TEST
+          g++ test_call.c -o test_call -DUNIT_TEST -L/usr/local/lib -lcryptopp
+          #g++ test_call.c -o test_call -DUNIT_TEST -L/usr/local/lib -l:libcryptopp.a
           ./test_call 
