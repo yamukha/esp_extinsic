@@ -34,6 +34,18 @@ void compareBytes (Data data, Data pattern) {
   assert(std::equal(std::begin(data), std::end(data), std::begin(pattern)) && "Bytes vector is not equal to expected pattern");
 }
 
+void derivePubKey (uint8_t  privateKey[KEYS_SIZE], uint8_t publicKey[KEYS_SIZE]) {
+   using namespace CryptoPP;
+
+   ed25519::Signer signer = ed25519Signer (privateKey);
+   ed25519::Verifier verifier(signer);
+
+   const ed25519PublicKey& pubKey = dynamic_cast<const ed25519PublicKey&>(verifier.GetPublicKey());
+   auto pt = pubKey.GetPublicKeyBytePtr();
+
+   std::memcpy(publicKey, pt, KEYS_SIZE);
+}
+
 void test_callDatalogRecord() {
   auto record = "42";
   Data head = Data{0x33,0};
@@ -92,20 +104,12 @@ Data data = Data {
 
    uint8_t publicKey[KEYS_SIZE];
    uint8_t privateKey[KEYS_SIZE];
+   
    std::vector<uint8_t> vk = hex2bytes(PRIVKEY);
    std::copy(vk.begin(), vk.end(), privateKey);
 
-   //prepare pubkey
-   using namespace CryptoPP;
-
-   ed25519::Signer signer = ed25519Signer (privateKey);
-   ed25519::Verifier verifier(signer);
-
-   const ed25519PublicKey& pubKey = dynamic_cast<const ed25519PublicKey&>(verifier.GetPublicKey());
-   auto pt = pubKey.GetPublicKeyBytePtr();
-
-   std::memcpy(publicKey, pt, KEYS_SIZE);
-  
+   derivePubKey(privateKey, publicKey);
+    
    Data signature = doSign (data, privateKey, publicKey);
 
    Data signaturePattern = Data {
@@ -134,37 +138,43 @@ void  test_doEncode() {
     0xf4, 0x90, 0xce, 0xc4, 0x56, 0x0a, 0xfb, 0x9b,
     0xcf, 0x04, 0x35, 0x11, 0xa0, 0x93, 0xa6, 0x0d
   };
- 
-   uint8_t publicKey[KEYS_SIZE];
-   uint8_t privateKey[KEYS_SIZE];
-   std::vector<uint8_t> vk = hex2bytes(PRIVKEY);
-   std::copy(vk.begin(), vk.end(), privateKey);
-   
-   // TODO prepare pubkey as separate funtion, 1st uasge in test_doSign()
-   using namespace CryptoPP;
-
-   ed25519::Signer signer = ed25519Signer (privateKey);
-   ed25519::Verifier verifier(signer);
-
-   const ed25519PublicKey& pubKey = dynamic_cast<const ed25519PublicKey&>(verifier.GetPublicKey());
-   auto pt = pubKey.GetPublicKeyBytePtr();
-
-   std::memcpy(publicKey, pt, KEYS_SIZE);
-   std::vector<std::uint8_t> pubKeyVector( reinterpret_cast<std::uint8_t*>(std::begin(publicKey)), reinterpret_cast<std::uint8_t*>(std::end(publicKey)));
-
+     
     uint32_t era =  0;
     uint64_t nonce = 0;
     uint64_t tip = 0;
-
     auto record = "42";
+
+    uint8_t publicKey[KEYS_SIZE];
+    uint8_t privateKey[KEYS_SIZE];
+   
+    std::vector<uint8_t> vk = hex2bytes(PRIVKEY);
+    std::copy(vk.begin(), vk.end(), privateKey);
+    derivePubKey(privateKey, publicKey);
+    std::vector<std::uint8_t> pubKeyVector( reinterpret_cast<std::uint8_t*>(std::begin(publicKey)), reinterpret_cast<std::uint8_t*>(std::end(publicKey)));
+
     Data head = Data{0x33,0};
     Data call = callDatalogRecord(head, record);
-
+    
     Data edata = doEncode (signature, pubKeyVector, era, nonce, tip, call);
 
-    // TODO: assert
-    // assert(std::equal(std::begin(edata), std::end(edata), std::begin(edataPattern)) && "Bytes vector is not equal to expected pattern");
-
+    Data edataPattern = Data {
+      0xad, 0x01, 0x84, 0x00, 0xf9, 0x0b, 0xc7, 0x12,
+      0xb5, 0xf2, 0x86, 0x40, 0x51, 0x35, 0x31, 0x77,
+      0xa9, 0xd6, 0x27, 0x60, 0x5d, 0x4b, 0xf7, 0xec,
+      0x36, 0xc7, 0xdf, 0x56, 0x8c, 0xfd, 0xce, 0xa9,
+      0xf2, 0x37, 0xc1, 0x85, 0x00, 0x68, 0xd4, 0xd0,
+      0x1a, 0x5d, 0xd9, 0x8e, 0xbc, 0xa8, 0xa7, 0x93,
+      0x15, 0x06, 0x93, 0x8b, 0x6f, 0x7c, 0x79, 0xab,
+      0x1b, 0x6b, 0x27, 0x03, 0x60, 0xfb, 0x28, 0x6c,
+      0xd4, 0x9d, 0x54, 0xce, 0x69, 0x1c, 0xeb, 0xf6,
+      0x07, 0x0f, 0x02, 0x6c, 0xcf, 0x78, 0xd8, 0x9d,
+      0xfd, 0xf6, 0x01, 0xef, 0xc8, 0xf4, 0x90, 0xce,
+      0xc4, 0x56, 0x0a, 0xfb, 0x9b, 0xcf, 0x04, 0x35,
+      0x11, 0xa0, 0x93, 0xa6, 0x0d, 0x00, 0x00, 0x00,
+      0x33, 0x00, 0x08, 0x34, 0x32
+    };
+    
+    assert(std::equal(std::begin(edata), std::end(edata), std::begin(edataPattern)) && "Bytes vector is not equal to expected pattern");
 }
 
 int main () {
