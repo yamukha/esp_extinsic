@@ -18,8 +18,8 @@ jobs:
         run: |
           echo " git clone" 
           cd ~
-          #git clone https://github.com/airalab/robonomics-client-cpp.git
-          git clone https://github.com/yamukha/esp_extinsic.git
+          git clone https://github.com/airalab/robonomics-client-cpp.git
+          #git clone https://github.com/yamukha/esp_extinsic.git
 
       - name: Install cryptopp from repo
         run: |
@@ -31,8 +31,8 @@ jobs:
 
       - name: Build 
         run: |
-          #cd ~/robonomics-client-cpp
-          cd  ~/esp_extinsic/tests
+          cd ~/robonomics-client-cpp/tests
+          #cd  ~/esp_extinsic/tests
           g++ test_call.c -o test_call -DUNIT_TEST -L/usr/local/lib -lcryptopp
           #g++ test_call.c -o test_call -DUNIT_TEST -L/usr/local/lib -l:libcryptopp.a
           ./test_call 
